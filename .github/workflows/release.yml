@@ -35,19 +35,24 @@ jobs:
           sudo apt-get install -y google-chrome-stable
 
       - name: Decode signing key
-        run: echo "${{ secrets.CRX_PRIVATE_KEY }}" | base64 -d > key.pem
+        run: echo "${{ secrets.CRX_PRIVATE_KEY }}" | base64 -d > /tmp/crx-key.pem
 
       - name: Pack CRX
         run: |
+          # Copy only the extension files into a clean build directory
+          mkdir -p /tmp/ext-build
+          cp -r manifest.json background offscreen popup lib icons /tmp/ext-build/
+
           google-chrome-stable \
-            --pack-extension=. \
-            --pack-extension-key=./key.pem \
+            --pack-extension=/tmp/ext-build \
+            --pack-extension-key=/tmp/crx-key.pem \
             --no-sandbox
-          mv tax-code-verifier.crx tax-code-verifier-${{ github.ref_name }}.crx
+
+          mv /tmp/ext-build.crx tax-code-verifier-${{ github.ref_name }}.crx
 
       - name: Clean up key
         if: always()
-        run: rm -f key.pem
+        run: rm -f /tmp/crx-key.pem
 
       # ── GitHub Release ────────────────────────────────────────────────────────
       - name: Create GitHub Release
