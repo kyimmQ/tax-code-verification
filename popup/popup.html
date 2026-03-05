@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>Tax Code Verifier</title>
+  <link rel="stylesheet" href="popup.css">
+  <script src="../lib/xlsx.min.js"></script>
+</head>
+<body>
+  <div class="header">
+    <h1>Tra cứu MST TNCN</h1>
+  </div>
+
+  <!-- Drop zone -->
+  <div id="dropzone">
+    <span>Kéo thả file Excel hoặc <label for="fileInput" class="link">chọn file</label></span>
+    <span class="hint">.xlsx, .xls</span>
+  </div>
+  <input type="file" id="fileInput" accept=".xlsx,.xls" hidden>
+
+  <!-- File info -->
+  <div id="fileInfo" hidden>
+    <span id="fileName" class="file-name"></span>
+    <button id="btnClearFile" class="btn-icon" title="Xóa file">✕</button>
+  </div>
+
+  <!-- Column selectors (3 columns) -->
+  <div id="columnSelector" hidden>
+    <div class="col-row">
+      <label for="colCccd">Thông tin CCCD:</label>
+      <select id="colCccd"></select>
+    </div>
+    <div class="col-row">
+      <label for="colMst">MST (cũ):</label>
+      <select id="colMst"></select>
+    </div>
+    <div class="col-row">
+      <label for="colDongBo">Đồng bộ CCCD:</label>
+      <select id="colDongBo"></select>
+    </div>
+    <button id="btnLoad" class="btn-primary">Tải danh sách</button>
+  </div>
+
+  <!-- Stats bar -->
+  <div id="statsBar" hidden>
+    <div class="stat"><span id="statTotal">0</span><small>Tổng</small></div>
+    <div class="stat"><span id="statDone">0</span><small>Xong</small></div>
+    <div class="stat dongbo"><span id="statDongBo">0</span><small>Đồng bộ</small></div>
+    <div class="stat chuadb"><span id="statChuaDongBo">0</span><small>Chưa ĐB</small></div>
+    <div class="stat notfound"><span id="statKhongTimThay">0</span><small>Không thấy</small></div>
+    <div class="stat error"><span id="statError">0</span><small>Lỗi</small></div>
+  </div>
+
+  <!-- Current processing -->
+  <div id="currentCode" hidden>
+    <span class="processing-label">Đang kiểm tra:</span>
+    <b id="codeDisplay"></b>
+    <small id="phaseDisplay"></small>
+  </div>
+
+  <!-- Progress bar -->
+  <div id="progressWrap" hidden>
+    <progress id="progressBar" value="0" max="100"></progress>
+    <span id="progressPct">0%</span>
+  </div>
+
+  <!-- Controls -->
+  <div id="controls" hidden>
+    <button id="btnStart" class="btn-primary">Bắt đầu</button>
+    <button id="btnPause" class="btn-secondary" disabled>Tạm dừng</button>
+    <button id="btnStop" class="btn-danger" disabled>Dừng</button>
+    <button id="btnExport" class="btn-success" disabled>⬇ Xuất Excel</button>
+  </div>
+
+  <!-- Results preview -->
+  <div id="resultsWrap" hidden>
+    <div class="section-header">
+      <div class="section-title">Kết quả gần đây</div>
+      <button id="btnClearResults" class="btn-icon" title="Xóa kết quả">✕</button>
+    </div>
+    <table id="resultsTable">
+      <thead>
+        <tr>
+          <th>CCCD / MST</th>
+          <th>Đồng bộ CCCD</th>
+          <th>Kết quả</th>
+        </tr>
+      </thead>
+      <tbody id="resultsBody"></tbody>
+    </table>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
