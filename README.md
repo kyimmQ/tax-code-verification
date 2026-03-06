@@ -113,30 +113,7 @@ After editing any file: click the **↺** refresh icon on the extension card.
 
 ## Creating a release
 
-Releases are automated via GitHub Actions. Pushing a version tag builds and publishes both a `.zip` and a `.crx` to GitHub Releases.
-
-### First-time setup (one-time)
-
-**1. Generate a signing key**
-
-```bash
-openssl genrsa -out key.pem 2048
-```
-
-Keep `key.pem` safe and backed up. You must use the **same key for every release** — losing it means users need to reinstall from scratch.
-
-**2. Add the key as a GitHub secret**
-
-```bash
-# macOS — base64-encode and copy to clipboard
-base64 -i key.pem | pbcopy
-```
-
-In GitHub: **Settings → Secrets and variables → Actions → New repository secret**
-
-| Name | Value |
-|---|---|
-| `CRX_PRIVATE_KEY` | paste the base64 string |
+Releases are automated via GitHub Actions. Pushing a version tag builds and publishes a `.zip` to GitHub Releases.
 
 ### Publishing a release
 
@@ -154,9 +131,8 @@ git push origin main --tags
 ```
 
 GitHub Actions will automatically:
-- Build `tax-code-verifier-v1.1.0.zip` (for Load unpacked)
-- Build `tax-code-verifier-v1.1.0.crx` (signed, for drag-and-drop in Developer mode)
-- Create a GitHub Release with both files attached and auto-generated release notes
+- Build `tax-code-verifier-v1.1.0.zip`
+- Create a GitHub Release with the zip attached and auto-generated release notes
 
 ### Workflow file
 

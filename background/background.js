@@ -1,8 +1,8 @@
 // background.js — Tax Code Verifier service worker (ES Module)
 
 const TARGET_URL = "https://tracuunnt.gdt.gov.vn/tcnnt/mstcn.jsp";
-const MAX_RETRIES = 10;
-const DELAY_MS = 5000;
+const MAX_RETRIES = 20;
+const DELAY_MS = 2000;
 const WATCHDOG_MS = 30000;
 
 // Module-level flags — reset on SW restart
@@ -46,20 +46,24 @@ function getCaptchaBase64() {
       return;
     }
 
-    console.log(`[Page] CAPTCHA img found — src="${img.src}" complete=${img.complete} naturalSize=${img.naturalWidth}x${img.naturalHeight}`);
+    console.log(
+      `[Page] CAPTCHA img found — src="${img.src}" complete=${img.complete} naturalSize=${img.naturalWidth}x${img.naturalHeight}`,
+    );
 
     function drawAndReturn() {
       try {
         const SCALE = 2; // 2x upscale improves Tesseract accuracy on the small 130×50 source
         const canvas = document.createElement("canvas");
-        canvas.width  = (img.naturalWidth  || img.width  || 130) * SCALE;
-        canvas.height = (img.naturalHeight || img.height || 35)  * SCALE;
+        canvas.width = (img.naturalWidth || img.width || 130) * SCALE;
+        canvas.height = (img.naturalHeight || img.height || 35) * SCALE;
         const ctx = canvas.getContext("2d");
         ctx.fillStyle = "#ffffff"; // white background — handles transparent CAPTCHAs
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         const dataUrl = canvas.toDataURL("image/png");
-        console.log(`[Page] CAPTCHA canvas drawn — size=${canvas.width}x${canvas.height} dataLen=${dataUrl.length}`);
+        console.log(
+          `[Page] CAPTCHA canvas drawn — size=${canvas.width}x${canvas.height} dataLen=${dataUrl.length}`,
+        );
         resolve(dataUrl);
       } catch (e) {
         console.log(`[Page] CAPTCHA canvas draw error: ${e.message}`);
@@ -83,12 +87,20 @@ function fillAndSubmit(taxCode, captchaText) {
   const submitBtn = document.querySelector("input.subBtn");
 
   if (!mstInput || !captchaInput || !submitBtn) {
-    const msg = "Form elements not found: mst=" + !!mstInput + " captcha=" + !!captchaInput + " btn=" + !!submitBtn;
+    const msg =
+      "Form elements not found: mst=" +
+      !!mstInput +
+      " captcha=" +
+      !!captchaInput +
+      " btn=" +
+      !!submitBtn;
     console.log("[Page] " + msg);
     throw new Error(msg);
   }
 
-  console.log(`[Page] Filling form — taxCode="${taxCode}" captcha="${captchaText}"`);
+  console.log(
+    `[Page] Filling form — taxCode="${taxCode}" captcha="${captchaText}"`,
+  );
   mstInput.value = String(taxCode);
   captchaInput.value = String(captchaText);
   submitBtn.click();
@@ -103,7 +115,9 @@ function readPageState() {
   );
   for (const p of redPs) {
     if (p.textContent.includes("nhập đúng mã")) {
-      console.log(`[Page] State=CAPTCHA_ERROR — red error: "${p.textContent.trim()}"`);
+      console.log(
+        `[Page] State=CAPTCHA_ERROR — red error: "${p.textContent.trim()}"`,
+      );
       return { type: "CAPTCHA_ERROR" };
     }
   }
@@ -111,7 +125,9 @@ function readPageState() {
   // 2. Check result container
   const rc = document.querySelector("#resultContainer");
   if (!rc) {
-    console.log("[Page] State=FRESH_FORM — no #resultContainer, no captcha error");
+    console.log(
+      "[Page] State=FRESH_FORM — no #resultContainer, no captcha error",
+    );
     return { type: "FRESH_FORM" };
   }
 
@@ -129,20 +145,26 @@ function readPageState() {
   const dataRows = Array.from(allRows).filter((r) => !r.querySelector("th"));
 
   if (dataRows.length === 0) {
-    console.log("[Page] State=FRESH_FORM — #resultContainer present but no data rows");
+    console.log(
+      "[Page] State=FRESH_FORM — #resultContainer present but no data rows",
+    );
     return { type: "FRESH_FORM" };
   }
 
   const cells = dataRows[0].querySelectorAll("td");
   if (cells.length < 5) {
-    console.log(`[Page] State=FRESH_FORM — result row has only ${cells.length} cells (need 5)`);
+    console.log(
+      `[Page] State=FRESH_FORM — result row has only ${cells.length} cells (need 5)`,
+    );
     return { type: "FRESH_FORM" };
   }
 
   const name = (cells[2]?.textContent || "").trim();
   const taxAuthority = (cells[3]?.textContent || "").trim();
   const mstStatus = (cells[4]?.textContent || "").trim();
-  console.log(`[Page] State=RESULT/FOUND — name="${name}" authority="${taxAuthority}" status="${mstStatus}"`);
+  console.log(
+    `[Page] State=RESULT/FOUND — name="${name}" authority="${taxAuthority}" status="${mstStatus}"`,
+  );
 
   return {
     type: "RESULT",
@@ -409,7 +431,9 @@ async function triggerPageRead() {
     return;
   }
 
-  console.log(`[BG] ── triggerPageRead row=${current.rowIdx} phase=${current.lookupPhase} code="${current.activeCode}" retry=${current.retryCount || 0}`);
+  console.log(
+    `[BG] ── triggerPageRead row=${current.rowIdx} phase=${current.lookupPhase} code="${current.activeCode}" retry=${current.retryCount || 0}`,
+  );
 
   try {
     // Step 1: Read current page state
@@ -477,13 +501,17 @@ async function triggerPageRead() {
     );
 
     // Step 4: Fill and submit using the active code for this phase
-    console.log(`[BG] Step 4: submitting form — taxCode="${current.activeCode}" captcha="${ocrResult.text}"`);
+    console.log(
+      `[BG] Step 4: submitting form — taxCode="${current.activeCode}" captcha="${ocrResult.text}"`,
+    );
     await chrome.scripting.executeScript({
       target: { tabId },
       func: fillAndSubmit,
       args: [current.activeCode, ocrResult.text],
     });
-    console.log("[BG] Step 4 done: form submitted — waiting for page navigation");
+    console.log(
+      "[BG] Step 4 done: form submitted — waiting for page navigation",
+    );
 
     // Page will navigate after submit — onUpdated fires next
     isProcessing = false;
@@ -541,7 +569,9 @@ async function processNext() {
     },
   });
 
-  console.log(`[BG] Processing row=${item.rowIdx} phase=${lookupPhase} code="${activeCode}" (${rest.length} remaining in queue)`);
+  console.log(
+    `[BG] Processing row=${item.rowIdx} phase=${lookupPhase} code="${activeCode}" (${rest.length} remaining in queue)`,
+  );
   let tab = null;
   if (tabId) {
     try {
@@ -718,7 +748,9 @@ chrome.tabs.onUpdated.addListener(async (updatedTabId, info, tab) => {
   if (phase !== "running") return;
   if (!tab.url || !tab.url.includes("tracuunnt.gdt.gov.vn")) return;
 
-  console.log(`[BG] Tab ${updatedTabId} loaded: "${tab.url}" — waiting ${DELAY_MS}ms then reading page`);
+  console.log(
+    `[BG] Tab ${updatedTabId} loaded: "${tab.url}" — waiting ${DELAY_MS}ms then reading page`,
+  );
   isProcessing = true;
   try {
     await delay(DELAY_MS); // let page JS execute

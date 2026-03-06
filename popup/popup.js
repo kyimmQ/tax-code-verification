@@ -300,6 +300,7 @@ function updateResultsTable(results) {
     tr.innerHTML = `
       <td title="${displayCode}">${displayCode}</td>
       <td title="${r.dongBoValue || ''}">${r.dongBoValue || '—'}</td>
+      <td title="${r.name || ''}">${r.name || '—'}</td>
       <td class="${statusCls}">${statusLbl}</td>
     `;
     resultsBody.appendChild(tr);
@@ -348,12 +349,25 @@ async function exportResults() {
     resultByRow[r.rowIdx] = r;
   }
 
-  // In-place overwrite of Đồng bộ CCCD column only
+  // Find or create "Tên NNT" column in the header row
+  const headerRow = rows[0] || [];
+  const NAME_KEYWORDS = ['tên nnt', 'ten nnt', 'tên người nộp thuế', 'ten nguoi nop thue'];
+  let colNameIdx = headerRow.findIndex(h =>
+    NAME_KEYWORDS.some(k => String(h).toLowerCase().includes(k))
+  );
+  if (colNameIdx < 0) {
+    colNameIdx = headerRow.length;
+    rows[0][colNameIdx] = 'Tên NNT';
+  }
+
+  // In-place overwrite of Đồng bộ CCCD column and name column
   for (let i = 1; i < rows.length; i++) {
     const result = resultByRow[i];
     if (result) {
       while (rows[i].length <= colDongBoIdx) rows[i].push('');
       rows[i][colDongBoIdx] = result.dongBoValue || '';
+      while (rows[i].length <= colNameIdx) rows[i].push('');
+      rows[i][colNameIdx] = result.name || '';
     }
     // Rows without result: leave original value untouched
   }
