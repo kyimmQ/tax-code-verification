@@ -159,6 +159,7 @@ function readPageState() {
     return { type: "FRESH_FORM" };
   }
 
+  const taxCode = (cells[1]?.textContent || "").trim();
   const name = (cells[2]?.textContent || "").trim();
   const taxAuthority = (cells[3]?.textContent || "").trim();
   const mstStatus = (cells[4]?.textContent || "").trim();
@@ -168,7 +169,7 @@ function readPageState() {
 
   return {
     type: "RESULT",
-    data: { status: "FOUND", name, taxAuthority, mstStatus },
+    data: { status: "FOUND", name, taxAuthority, mstStatus, taxCode },
   };
 }
 
@@ -243,6 +244,7 @@ async function recordFinalResult(
     name: pageData.name || "",
     taxAuthority: pageData.taxAuthority || "",
     mstStatus: pageData.mstStatus || "",
+    foundMst: pageData.taxCode || "",
   };
 
   console.log(
@@ -335,13 +337,17 @@ async function handleResult(pageData) {
 
   if (current.lookupPhase === "CCCD") {
     if (pageData.status === "FOUND") {
-      // CCCD found → write the CCCD code itself to Đồng bộ CCCD
+      // Compare input CCCD with the MST found on the web
+      const inputCode = (current.cccdCode || "").trim();
+      const foundCode = (pageData.taxCode || "").trim();
+      const matched = inputCode && foundCode && inputCode === foundCode;
+      const dongBoValue = matched ? "ĐỒNG BỘ" : "KHÔNG KHỚP";
       await recordFinalResult(
         current,
         results,
         progress,
         "DONG_BO",
-        current.cccdCode,
+        dongBoValue,
         pageData,
       );
       return;

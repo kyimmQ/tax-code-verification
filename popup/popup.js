@@ -301,6 +301,7 @@ function updateResultsTable(results) {
       <td title="${displayCode}">${displayCode}</td>
       <td title="${r.dongBoValue || ''}">${r.dongBoValue || '—'}</td>
       <td title="${r.name || ''}">${r.name || '—'}</td>
+      <td title="${r.foundMst || ''}">${r.foundMst || '—'}</td>
       <td class="${statusCls}">${statusLbl}</td>
     `;
     resultsBody.appendChild(tr);
@@ -360,7 +361,27 @@ async function exportResults() {
     rows[0][colNameIdx] = 'Tên NNT';
   }
 
-  // In-place overwrite of Đồng bộ CCCD column and name column
+  // Find or create "MST Tìm thấy" column
+  const MST_FOUND_KEYWORDS = ['mst tìm thấy', 'mst tim thay', 'mst found'];
+  let colFoundMstIdx = headerRow.findIndex(h =>
+    MST_FOUND_KEYWORDS.some(k => String(h).toLowerCase().includes(k))
+  );
+  if (colFoundMstIdx < 0) {
+    colFoundMstIdx = rows[0].length;
+    rows[0][colFoundMstIdx] = 'MST Tìm thấy';
+  }
+
+  // Find or create "Trạng thái MST" column
+  const MST_STATUS_KEYWORDS = ['trạng thái mst', 'trang thai mst', 'mst status'];
+  let colMstStatusIdx = headerRow.findIndex(h =>
+    MST_STATUS_KEYWORDS.some(k => String(h).toLowerCase().includes(k))
+  );
+  if (colMstStatusIdx < 0) {
+    colMstStatusIdx = rows[0].length;
+    rows[0][colMstStatusIdx] = 'Trạng thái MST';
+  }
+
+  // In-place overwrite of Đồng bộ CCCD column, name column, found MST column, and MST status column
   for (let i = 1; i < rows.length; i++) {
     const result = resultByRow[i];
     if (result) {
@@ -368,6 +389,10 @@ async function exportResults() {
       rows[i][colDongBoIdx] = result.dongBoValue || '';
       while (rows[i].length <= colNameIdx) rows[i].push('');
       rows[i][colNameIdx] = result.name || '';
+      while (rows[i].length <= colFoundMstIdx) rows[i].push('');
+      rows[i][colFoundMstIdx] = result.foundMst || '';
+      while (rows[i].length <= colMstStatusIdx) rows[i].push('');
+      rows[i][colMstStatusIdx] = result.mstStatus || '';
     }
     // Rows without result: leave original value untouched
   }
