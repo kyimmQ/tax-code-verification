@@ -333,12 +333,6 @@ async function exportResults() {
     return;
   }
 
-  const colDongBoIdx = parseInt(stored.colDongBo, 10);
-  if (!(colDongBoIdx >= 0)) {
-    alert('Chưa xác định cột "Đồng bộ CCCD". Vui lòng tải lại file.');
-    return;
-  }
-
   const buf = new Uint8Array(stored.originalFile).buffer;
   const wb = XLSX.read(buf, { type: 'array' });
   const sheetName = stored.fileSheetName || wb.SheetNames[0];
@@ -350,8 +344,19 @@ async function exportResults() {
     resultByRow[r.rowIdx] = r;
   }
 
-  // Find or create "Tên NNT" column in the header row
   const headerRow = rows[0] || [];
+
+  // Find or create "Đồng bộ CCCD" column
+  const DONGBO_KEYWORDS = ['đồng bộ cccd', 'dong bo cccd'];
+  let colDongBoIdx = headerRow.findIndex(h =>
+    DONGBO_KEYWORDS.some(k => String(h).toLowerCase().includes(k))
+  );
+  if (colDongBoIdx < 0) {
+    colDongBoIdx = headerRow.length;
+    rows[0][colDongBoIdx] = 'Đồng bộ CCCD';
+  }
+
+  // Find or create "Tên NNT" column
   const NAME_KEYWORDS = ['tên nnt', 'ten nnt', 'tên người nộp thuế', 'ten nguoi nop thue'];
   let colNameIdx = headerRow.findIndex(h =>
     NAME_KEYWORDS.some(k => String(h).toLowerCase().includes(k))
@@ -361,13 +366,23 @@ async function exportResults() {
     rows[0][colNameIdx] = 'Tên NNT';
   }
 
+  // Find or create "Cơ quan thuế" column
+  const TAX_AUTHORITY_KEYWORDS = ['cơ quan thuế', 'co quan thue', 'tax authority'];
+  let colTaxAuthorityIdx = headerRow.findIndex(h =>
+    TAX_AUTHORITY_KEYWORDS.some(k => String(h).toLowerCase().includes(k))
+  );
+  if (colTaxAuthorityIdx < 0) {
+    colTaxAuthorityIdx = headerRow.length;
+    rows[0][colTaxAuthorityIdx] = 'Cơ quan thuế';
+  }
+
   // Find or create "MST Tìm thấy" column
   const MST_FOUND_KEYWORDS = ['mst tìm thấy', 'mst tim thay', 'mst found'];
   let colFoundMstIdx = headerRow.findIndex(h =>
     MST_FOUND_KEYWORDS.some(k => String(h).toLowerCase().includes(k))
   );
   if (colFoundMstIdx < 0) {
-    colFoundMstIdx = rows[0].length;
+    colFoundMstIdx = headerRow.length;
     rows[0][colFoundMstIdx] = 'MST Tìm thấy';
   }
 
@@ -377,27 +392,92 @@ async function exportResults() {
     MST_STATUS_KEYWORDS.some(k => String(h).toLowerCase().includes(k))
   );
   if (colMstStatusIdx < 0) {
-    colMstStatusIdx = rows[0].length;
+    colMstStatusIdx = headerRow.length;
     rows[0][colMstStatusIdx] = 'Trạng thái MST';
   }
 
-  // In-place overwrite of Đồng bộ CCCD column, name column, found MST column, and MST status column
+  // Build a new list of rows to handle expansions
+  const newRows = [rows[0]]; // Start with header
+
   for (let i = 1; i < rows.length; i++) {
+    const originalRow = rows[i];
     const result = resultByRow[i];
-    if (result) {
-      while (rows[i].length <= colDongBoIdx) rows[i].push('');
-      rows[i][colDongBoIdx] = result.dongBoValue || '';
-      while (rows[i].length <= colNameIdx) rows[i].push('');
-      rows[i][colNameIdx] = result.name || '';
-      while (rows[i].length <= colFoundMstIdx) rows[i].push('');
-      rows[i][colFoundMstIdx] = result.foundMst || '';
-      while (rows[i].length <= colMstStatusIdx) rows[i].push('');
-      rows[i][colMstStatusIdx] = result.mstStatus || '';
+
+    if (result && result.extraRows && result.extraRows.length > 0) {
+      // First match - use existing columns
+      const row1 = [...originalRow];
+      while (row1.length <= colDongBoIdx) row1.push('');
+      row1[colDongBoIdx] = result.dongBoValue || '';
+      while (row1.length <= colNameIdx) row1.push('');
+      row1[colNameIdx] = result.name || '';
+      while (row1.length <= colTaxAuthorityIdx) row1.push('');
+      row1[colTaxAuthorityIdx] = result.taxAuthority || '';
+      while (row1.length <= colFoundMstIdx) row1.push('');
+      row1[colFoundMstIdx] = result.foundMst || '';
+      while (row1.length <= colMstStatusIdx) row1.push('');
+      row1[colMstStatusIdx] = result.mstStatus || '';
+      newRows.push(row1);
+
+      // Extra matches - only extra columns (no user input columns)
+      for (const extraRow of result.extraRows) {
+        // Create an empty row (no user data columns)
+        const newRow = [];
+
+        // Fill result columns with extra row data at the correct indices
+        // Ensure columns up to colDongBoIdx are empty
+        if (colDongBoIdx >= 0) {
+          while (newRow.length < colDongBoIdx) newRow.push('');
+          // Empty for extra row (user data not repeated)
+          newRow.push('');
+        }
+
+        // Ensure columns up to colNameIdx are empty, then add Name
+        if (colNameIdx >= 0) {
+          while (newRow.length < colNameIdx) newRow.push('');
+          newRow.push(extraRow.name || '');
+        }
+
+        // Ensure columns up to colTaxAuthorityIdx are empty, then add Tax Authority
+        if (colTaxAuthorityIdx >= 0) {
+          while (newRow.length < colTaxAuthorityIdx) newRow.push('');
+          newRow.push(extraRow.taxAuthority || '');
+        }
+
+        // Ensure columns up to colFoundMstIdx are empty, then add Found MST
+        if (colFoundMstIdx >= 0) {
+          while (newRow.length < colFoundMstIdx) newRow.push('');
+          newRow.push(extraRow.taxCode || '');
+        }
+
+        // Ensure columns up to colMstStatusIdx are empty, then add Status
+        if (colMstStatusIdx >= 0) {
+          while (newRow.length < colMstStatusIdx) newRow.push('');
+          newRow.push(extraRow.mstStatus || '');
+        }
+
+        newRows.push(newRow);
+      }
+    } else if (result) {
+      // No extra rows - just update standard columns
+      const row = [...originalRow];
+      while (row.length <= colDongBoIdx) row.push('');
+      row[colDongBoIdx] = result.dongBoValue || '';
+      while (row.length <= colNameIdx) row.push('');
+      row[colNameIdx] = result.name || '';
+      while (row.length <= colTaxAuthorityIdx) row.push('');
+      row[colTaxAuthorityIdx] = result.taxAuthority || '';
+      while (row.length <= colFoundMstIdx) row.push('');
+      row[colFoundMstIdx] = result.foundMst || '';
+      while (row.length <= colMstStatusIdx) row.push('');
+      row[colMstStatusIdx] = result.mstStatus || '';
+      newRows.push(row);
+    } else {
+      // No result - keep original row
+      newRows.push(originalRow);
     }
-    // Rows without result: leave original value untouched
   }
 
-  const newWs = XLSX.utils.aoa_to_sheet(rows);
+  const newWs = XLSX.utils.aoa_to_sheet(newRows);
   wb.Sheets[sheetName] = newWs;
 
   const outBuf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });

@@ -163,13 +163,30 @@ function readPageState() {
   const name = (cells[2]?.textContent || "").trim();
   const taxAuthority = (cells[3]?.textContent || "").trim();
   const mstStatus = (cells[4]?.textContent || "").trim();
+
+  // Extract extra rows (starting from index 1)
+  const extraRows = [];
+  if (dataRows.length > 1) {
+    for (let i = 1; i < dataRows.length; i++) {
+      const rowCells = dataRows[i].querySelectorAll("td");
+      if (rowCells.length >= 5) {
+        extraRows.push({
+          taxCode: (rowCells[1]?.textContent || "").trim(),
+          name: (rowCells[2]?.textContent || "").trim(),
+          taxAuthority: (rowCells[3]?.textContent || "").trim(),
+          mstStatus: (rowCells[4]?.textContent || "").trim(),
+        });
+      }
+    }
+  }
+
   console.log(
-    `[Page] State=RESULT/FOUND — name="${name}" authority="${taxAuthority}" status="${mstStatus}"`,
+    `[Page] State=RESULT/FOUND — name="${name}" authority="${taxAuthority}" status="${mstStatus}" extraRows=${extraRows.length}`,
   );
 
   return {
     type: "RESULT",
-    data: { status: "FOUND", name, taxAuthority, mstStatus, taxCode },
+    data: { status: "FOUND", name, taxAuthority, mstStatus, taxCode, extraRows },
   };
 }
 
@@ -245,6 +262,7 @@ async function recordFinalResult(
     taxAuthority: pageData.taxAuthority || "",
     mstStatus: pageData.mstStatus || "",
     foundMst: pageData.taxCode || "",
+    extraRows: pageData.extraRows || [],
   };
 
   console.log(
