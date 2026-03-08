@@ -516,6 +516,7 @@ async function restoreState() {
     progressWrap.hidden = false;
     currentCode.hidden  = false;
   } else if (phase === 'paused') {
+    btnExport.disabled = false;
     btnStart.disabled = true;
     btnPause.disabled = false;
     btnStop.disabled  = false;

@@ -709,6 +709,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           break;
         }
         case "PAUSE": {
+          clearWatchdog();
           const { progress } = await getState();
           await setState({
             phase: "paused",
